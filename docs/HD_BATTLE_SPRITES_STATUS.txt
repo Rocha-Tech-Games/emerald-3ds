@@ -55,20 +55,30 @@ _FORTIFY_SOURCE=0 (adaptación solo del chequeo host): aprobada.
 Constructor: 82 pruebas sin fallos, 2 omitidas.
 Pruebas host entrada/vídeo/día-noche/reloj/encuentros/campo/paquetes: aprobadas.
 Auditoría de publicación estricta: aprobada. Bootstrap/parches: aprobado.
-Estas pruebas no compilan ni ejecutan el nuevo compositor para ARM11.
+El compositor y el puente HD también se han compilado y enlazado para ARM11.
+Verificación completa make -C 3ds_port -j8 verify PYTHON=python3: aprobada.
+Auditoría final: ARM11 hard-float, 34 símbolos del juego requeridos, sin símbolos
+fuertes sin resolver y 6424/6424 assets RomFS verificados.
 
 COMPILACIÓN Y LÍMITES
-Intento de compilar los objetos modificados: falla por falta de
-/opt/devkitpro/devkitARM/bin/arm-none-eabi-gcc (error 127).
-Faltan devkitARM, libctru, citro2d/citro3d y herramientas 3DS. Usar el entorno
-establecido por la documentación del proyecto y GNU make moderno; el make de
-macOS advierte sobre reglas agrupadas. Pillow es necesario para generar assets.
-No se ha producido un .3dsx validado. No se afirma que esta rama compile aún.
+Compilación completa aprobada con la imagen oficial devkitpro/devkitarm:
+sha256:116afba8df8453961de2936ffab20dd441edf4d682856c1ec8b0e53d7ed0bbf5
+SDK instalado en Docker (aarch64): devkitARM GCC 16.1.0, libctru, Citro2D,
+Citro3D y herramientas 3DS; añadidos python3-pil y libpng-dev.
+GNU Make 4.4.1 instalado en el Mac; el contenedor utiliza GNU Make 4.3.
+Tras bootstrap: make -f make_tools.mk clean-tools; make -f make_tools.mk -j8;
+make generated -j8; make -C 3ds_port -j8 PYTHON=python3.
+Se reconstruyen herramientas host para Linux al cambiar desde macOS.
+Generado emerald3ds.3dsx con datos RomFS incluidos (EMBED_DATA=1), 36841564 bytes.
+SHA256: 75f9be7b8d40f1442da894486eba827d2b69e18b96f8b5c6d0d19262d5211dba
+Build ID: 26ae91f351894369. Cabecera 3DSX válida; CtrBattleHd_Read presente.
+La prueba host voxel_world_hash_test requería el stub GetMapClosedEdges;
+se añade solo a sus fixtures, sin cambios al ejecutable del juego.
 No se dispone de prueba en New 3DS XL: memoria libre, FPS, carga, orientación,
 alineación y compatibilidad visual están pendientes.
 
 VALIDACIÓN PENDIENTE EN CONSOLA
-Compilar con el SDK; combatir con los tres Pokémon por ambos lados y variantes;
+Combatir con los tres Pokémon por ambos lados y variantes;
 probar individuales/dobles, entrada/salida repetida, cambios, debilitamiento,
 substituto/transformación, ataques afines, flashes, ventanas, objetos faltantes y
 archivos corruptos. Medir heap lineal/FPS y pausas con cuatro atlas activos.

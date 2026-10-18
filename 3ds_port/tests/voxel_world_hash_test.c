@@ -1,6 +1,10 @@
 /* Include the real world implementation so fixtures can arrange overlapping
  * instances and compare its batched hash with its scalar raw-block reader. */
 #include <assert.h>
+#include "global.h"
+/* These isolated map fixtures have no closed camera edges. The game's
+ * declaration is guarded by PLATFORM_3DS, which host tests do not define. */
+u32 GetMapClosedEdges(void) { return 0; }
 #include "../src/voxel/voxel_world.c"
 
 struct MapHeader gMapHeader;
