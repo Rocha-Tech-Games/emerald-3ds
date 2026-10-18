@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert the Emerald National Dex (1–386) from the user's PokeMMO mod.
+"""Convert National Dex 1–386 GIFs from a battle-sprite ZIP (PokeMMO layout).
 Requires Pillow. Assets stay outside version control; no archive extraction.
 """
 import argparse

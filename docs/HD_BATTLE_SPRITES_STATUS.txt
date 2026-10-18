@@ -2,7 +2,7 @@ EMERALD 3DS: HD BATTLE SPRITES, CATÁLOGO DE ESMERALDA
 
 Fork: https://github.com/Rocha-Tech-Games/emerald-3ds
 Rama: feature/hd-battle-sprites; base original 7b3a16bb.
-No se modifica el repositorio original. Recursos del mod solo para la prueba local;
+No se modifica el repositorio original. Recursos gráficos solo para la prueba local;
 no se incluyen en Git. No se modifican datos ni formato de partidas.
 
 INSPECCIÓN Y CAMBIOS
@@ -16,13 +16,18 @@ Se usa SpeciesToNationalPokedexNum para los números 1–386; los identificadore
 internos de Hoenn difieren de los números del mod.
 
 COBERTURA REAL
-Mod suministrado: HD Battle Sprites 0.9.10, autores Verdep, Insensitivity.
-1676 GIF convertidos; 381 especies con alguna vista disponible.
-Faltan totalmente Celebi, Kyogre, Groudon, Jirachi y Deoxys.
-Mew, Ho-Oh, Regirock, Regice, Registeel, Latias y Latios carecen de espalda normal.
-Algunas variantes shiny también faltan. Se conserva el gráfico original donde
-no existe recurso, sin sustituirlo por una vista incorrecta.
-La prueba anterior con Mudkip se veía bien según el usuario; esta ampliación
+Colección uniforme PokéAPI/sprites, sprites/pokemon/other/showdown (Smogon).
+386 especies, cada una con frente/espalda normal y shiny: 1544 GIF.
+Se sustituyen todos los recursos del mod anterior, sin mezclar colecciones.
+Formas alternativas y diferencias por sexo no se incluyen en este catálogo.
+Commit de recursos: 289e842364648ec0495ae4ba12f48d5cbfbf670b.
+Procedencia y hashes: provenance.json del paquete SD.
+Descarga reproducible: tools/hd_battle/fetch_showdown.py CARPETA [--commit SHA].
+Verifica el inventario completo y el hash Git de cada GIF; produce showdown.zip
+para convertir con convert.py. Recursos derivados de Pokémon para prueba local;
+no se incluyen en Git. Créditos: PokéAPI, Pokémon Showdown/Smogon y titulares
+originales de los gráficos de Pokémon.
+La prueba anterior con Mudkip se veía bien según el usuario; esta colección
 requiere otra prueba en la consola.
 
 CONVERSIÓN Y MEMORIA
@@ -33,7 +38,7 @@ Atlas 512x512, RGBA5551, alfa binaria y orden Morton nativo.
 Cada .bin: EM3DHD01, 16 duraciones uint32 little-endian y 524288 bytes de textura;
 524360 bytes en total. Se comprueba formato, duración y longitud al cargar.
 Las texturas se cargan por combatiente: hasta cuatro atlas, 2 MiB de texturas,
-más metadatos. El catálogo completo requiere unos 839 MiB en SD, más ejecutable.
+más metadatos. El catálogo completo requiere unos 772 MiB en SD, más ejecutable.
 Carga síncrona al entrar/cambiar variante: pausas y FPS pendientes de medición.
 No se decodifican GIF en consola. Se pierde detalle y transparencia parcial.
 
@@ -41,7 +46,8 @@ COMPATIBILIDAD
 Se conservan posición, prioridad, recorte y doble pantalla. Se omiten sprites
 invisibles, sustituto y transformación. Los efectos afines, mosaico, cambios de
 paleta y otros efectos no compatibles pueden mostrar temporalmente el sprite GBA.
-Variantes por sexo: exacta primero, después genérica. Fallos de archivo o memoria
+El cargador busca sexo exacto antes de genérica: borrar la carpeta hd_battle
+anterior antes de instalar este catálogo para evitar recursos antiguos. Fallos de archivo o memoria
 mantienen el sprite original. Formas especiales requieren validación adicional.
 
 COMPILACIÓN Y VERIFICACIÓN
