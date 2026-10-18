@@ -1,0 +1,59 @@
+INSPECCIÓN: SPRITES HD DE POKEMMO PARA EMERALD 3DS
+
+Estado: preparación completada; integración pendiente del archivo .mod exacto.
+Fork: https://github.com/Rocha-Tech-Games/emerald-3ds
+Rama local: feature/hd-battle-sprites, desde upstream/integration.
+Base inspeccionada: 7b3a16bb37abe0fbd0a3fd49376358834da3d18b.
+El repositorio original no se ha modificado.
+
+INSTRUCCIONES Y DOCUMENTACIÓN
+No se encontró AGENTS.md aplicable en el repositorio ni sus directorios padres.
+Se revisaron CONTRIBUTING.md, README.md, 3ds_port/README.md y documentación de
+instalación, desarrollo, arquitectura y pipeline de assets. El proyecto exige
+mantener los cambios del motor pequeños y no publicar recursos extraídos,
+ROMs, partidas ni binarios generados. No se encontró ningún .mod en el
+repositorio ni en la búsqueda de archivos bajo Documents/Codex.
+
+ARQUITECTURA
+3ds_video.c traduce OAM, VRAM y registros de GBA al compositor Citro3D;
+DrawObjects/DrawObjectAt son puntos a evaluar para sustituir el dibujo de
+los combatientes. No basta superponer una imagen al final: hay que conservar
+prioridades, ventanas, transparencias, ocultación, transformaciones y efectos.
+voxel/voxel_battle.c gestiona escenario y sombras y ya consulta los sprites
+de combatientes. No implementa la reproducción del mod de PokeMMO.
+3ds_data.c ofrece RomFS, archivos sueltos y paquetes; no es un importador .mod.
+3ds_bottom_ui.c y 3ds_bottom_screen.c manejan la pantalla inferior.
+El heap lineal documentado es 8 MiB, compartido con atlas y buffers existentes;
+la VRAM usa arenas fijas. Es necesario medir presupuesto libre en consola.
+
+PRUEBA PREVISTA, AÚN NO IMPLEMENTADA
+Solo Venusaur (3), Charizard (6) y Blastoise (9), frente y espalda.
+Primero inspeccionar contenido, dimensiones, duración, transparencia y variantes
+del .mod proporcionado; no se ha supuesto que su formato sea GIF.
+Convertir fuera de la consola a frames/atlas aptos para GPU con tiempos originales,
+recorte y ancla estable. Determinar resolución y tasa de frames según mediciones.
+Cargar solo combatientes activos, con límites explícitos, liberación al salir
+y retorno al sprite original ante recurso ausente o fallo de carga.
+Ejemplo de coste, no presupuesto aprobado: 16 frames de 128x128 RGBA5551
+ocupan 512 KiB sin contar padding, staging ni metadatos. Cuatro combatientes
+pueden consumir 2 MiB más staging; evitar cargar todo el catálogo.
+Mantener datos y lógica de batalla, pantalla inferior y formato de partidas.
+Comprobar combates individuales/dobles, entrada/salida, debilitamiento,
+sustituto, transformación, shiny, movimientos con efectos y cambios de escena.
+No se han adaptado assets ni modificado el renderizador antes de recibir el mod.
+
+VALIDACIÓN REALIZADA
+Bootstrap completado: revisión pret/pokeemerald fijada en upstream.lock,
+76463dac15cad36aca5e2b3f6366abf9e53f814f, con parches aplicados.
+Constructor: 82 pruebas ejecutadas sin fallos, 2 omitidas.
+Pruebas nativas aprobadas: entrada, vídeo, día/noche, almacenamiento del reloj,
+encuentros, campo de visión y lector de paquetes (PYTHON=python3).
+Auditoría release_audit.py --strict aprobada sobre la base sin cambios.
+
+LIMITACIONES Y SIGUIENTE PASO
+Faltan devkitARM, libctru, citro2d/citro3d y 3dstools para compilar 3DS.
+El make del sistema también advierte sobre reglas agrupadas (&:); usar GNU make
+moderno en el entorno de compilación. No se ha generado un .3dsx validado.
+Sin prueba en New 3DS XL: no se afirma rendimiento, uso de memoria ni
+compatibilidad visual de las animaciones. No se ha probado una partida real.
+Adjuntar el archivo .mod exacto para iniciar la adaptación de los seis recursos.
