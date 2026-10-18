@@ -14,6 +14,7 @@
 #include "3ds_bottom.h"
 #include "ctr_battle_layout.h"
 #include "3ds_battle_hud.h"
+#include "3ds_battle_hd.h"
 #include "3ds_local.h"
 #include "../compat/port_prof.h"
 
@@ -5419,6 +5420,112 @@ static void DrawObjectAt(int x, int y, unsigned attr1, unsigned attr2, unsigned 
         }
 }
 
+/* Optional pilot pack: at most four 512 KiB textures, no runtime GIF decoder. */
+static struct {
+    C3D_Tex texture;
+    CtrBattleHd key;
+    uint32_t durations[16];
+    uint64_t started;
+    bool attempted;
+} sHd[4];
+static CtrBattleHd sHdSlots[4];
+
+static void HdPrepare(void)
+{
+    CtrBattleHd_Read(sHdSlots);
+    for (unsigned i = 0; i < 4; ++i)
+    {
+        CtrBattleHd *key = &sHdSlots[i];
+        bool same = key->active && sHd[i].key.active
+            && key->species == sHd[i].key.species && key->back == sHd[i].key.back
+            && key->shiny == sHd[i].key.shiny && key->female == sHd[i].key.female;
+        if (!same)
+        {
+            if (sHd[i].texture.data) C3D_TexDelete(&sHd[i].texture);
+            memset(&sHd[i], 0, sizeof(sHd[i]));
+            sHd[i].key = *key;
+        }
+        if (!key->active || sHd[i].attempted) continue;
+        sHd[i].attempted = true;
+        char path[96];
+        FILE *file = NULL;
+        /* Exact gender first; only a generic asset can be the fallback. */
+        for (unsigned variant = 0; variant < 2 && !file; ++variant)
+        {
+            snprintf(path, sizeof(path), "hd_battle/%u-%s-%c%s.bin", key->species,
+                key->back ? "back" : "front", key->shiny ? 's' : 'n',
+                variant ? "" : (key->female ? "-f" : "-m"));
+            file = CtrFs_OpenData(path, "rb");
+        }
+        if (!file) continue;
+        unsigned char header[72];
+        bool valid = fread(header, 1, sizeof(header), file) == sizeof(header)
+            && memcmp(header, "EM3DHD01", 8) == 0;
+        uint32_t total = 0;
+        for (unsigned f = 0; f < 16 && valid; ++f)
+        {
+            const unsigned char *p = header + 8 + f * 4;
+            uint32_t ms = p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
+            valid = ms > 0 && ms <= 3750;
+            sHd[i].durations[f] = ms;
+            total += ms;
+        }
+        valid = valid && total <= 60000;
+        if (valid && C3D_TexInit(&sHd[i].texture, 512, 512, GPU_RGBA5551))
+        {
+            valid = fread(sHd[i].texture.data, 1, 524288, file) == 524288;
+            valid = valid && fgetc(file) == EOF;
+            if (valid)
+            {
+                C3D_TexSetFilter(&sHd[i].texture, GPU_LINEAR, GPU_LINEAR);
+                C3D_TexSetWrap(&sHd[i].texture, GPU_CLAMP_TO_EDGE, GPU_CLAMP_TO_EDGE);
+                C3D_TexFlush(&sHd[i].texture);
+                sHd[i].started = osGetTime();
+            }
+            else { C3D_TexDelete(&sHd[i].texture); memset(&sHd[i].texture, 0, sizeof(sHd[i].texture)); }
+        }
+        fclose(file);
+    }
+}
+
+static bool HdDraw(int x, int y, unsigned attr0, unsigned attr1, unsigned attr2,
+                   unsigned width, unsigned height, unsigned boxW, unsigned boxH,
+                   bool affine, bool effects, unsigned mode)
+{
+    if (width != 64 || height != 64 || mode != 0 || (attr0 & 0x3000)) return false;
+    /* Animated affine effects retain the original sprite in this pilot. */
+    if (affine)
+    {
+        unsigned m = ((attr1 >> 9) & 31) * 16;
+        if ((int16_t)sMemory.oam[m+3] != 256 || sMemory.oam[m+7] != 0
+            || sMemory.oam[m+11] != 0 || (int16_t)sMemory.oam[m+15] != 256)
+            return false;
+    }
+    for (unsigned i = 0; i < 4; ++i)
+    {
+        CtrBattleHd *key = &sHdSlots[i];
+        if (!key->active || !key->drawable || !sHd[i].texture.data
+            || key->tile != (attr2 & 1023) || key->palette != (attr2 >> 12)) continue;
+        uint32_t total = 0;
+        for (unsigned f = 0; f < 16; ++f) total += sHd[i].durations[f];
+        uint32_t time = (osGetTime() - sHd[i].started) % total;
+        unsigned frame = 0;
+        while (frame < 15 && time >= sHd[i].durations[frame]) time -= sHd[i].durations[frame++];
+        float left = (frame % 4) * 0.25f, top = 1.0f - (frame / 4) * 0.25f;
+        Tex3DS_SubTexture sub = {128, 128, left, top, left + 0.25f, top - 0.25f};
+        if (!affine && (attr1 & 0x1000)) { float t = sub.left; sub.left = sub.right; sub.right = t; }
+        if (!affine && (attr1 & 0x2000)) { float t = sub.top; sub.top = sub.bottom; sub.bottom = t; }
+        C2D_Image image = {&sHd[i].texture, &sub};
+        SpriteBatchFlush();
+        Blend(4, effects, false);
+        ViewBase();
+        C2D_DrawImageAt(image, x + CTR_VIEW_X + sLayerShift + (boxW - width) / 2,
+            y + CTR_VIEW_Y + (boxH - height) / 2, 0, &sTint, 0.5f, 0.5f);
+        return true;
+    }
+    return false;
+}
+
 static void DrawObjects(unsigned priority, bool effects)
 {
     static const uint8_t dimensions[3][4][2] = {
@@ -5560,6 +5667,7 @@ static void DrawObjects(unsigned priority, bool effects)
                                  false, color256, effects, mode);
             continue;
         }
+        if (HdDraw(x, y, attr0, attr1, attr2, width, height, boxW, boxH, affine, effects, mode)) continue;
         DrawObjectAt(x, y, attr1, attr2, ObjBank((unsigned)i, attr2), width, height, boxW, boxH, affine, color256,
                      effects, mode);
     }
@@ -10788,6 +10896,7 @@ void CtrVideo_Present(void)
     CtrVoxel_NoteFrameWait(waitStart);
 #endif
     if (!C3D_FrameBegin(C3D_FRAME_SYNCDRAW)) return;
+    HdPrepare();
     /* A late clear wiped the scene surface's kept scenery, if it was that. */
     if (ClearsRun()) sSceneCached = sSceneEmpty = false;
     /* Before anything samples what the CPU wrote since the last frame. */
@@ -11351,6 +11460,9 @@ void CtrVideo_Shutdown(void)
 #endif
     LeavesRelease();
     if (sAtlas.data) C3D_TexDelete(&sAtlas);
+    for (unsigned i = 0; i < 4; ++i)
+        if (sHd[i].texture.data) C3D_TexDelete(&sHd[i].texture);
+    memset(sHd, 0, sizeof(sHd));
     if (sC3d) C3D_Fini();
     sLogical = sTop = sTopRight = NULL;
     sC2d = sC3d = false;

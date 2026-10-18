@@ -1,59 +1,76 @@
-INSPECCIÓN: SPRITES HD DE POKEMMO PARA EMERALD 3DS
+PRUEBA EXPERIMENTAL: HD BATTLE SPRITES
 
-Estado: preparación completada; integración pendiente del archivo .mod exacto.
 Fork: https://github.com/Rocha-Tech-Games/emerald-3ds
-Rama local: feature/hd-battle-sprites, desde upstream/integration.
-Base inspeccionada: 7b3a16bb37abe0fbd0a3fd49376358834da3d18b.
-El repositorio original no se ha modificado.
+Rama: feature/hd-battle-sprites; base upstream/integration 7b3a16bb.
+No se modifica el repositorio original.
 
-INSTRUCCIONES Y DOCUMENTACIÓN
-No se encontró AGENTS.md aplicable en el repositorio ni sus directorios padres.
-Se revisaron CONTRIBUTING.md, README.md, 3ds_port/README.md y documentación de
-instalación, desarrollo, arquitectura y pipeline de assets. El proyecto exige
-mantener los cambios del motor pequeños y no publicar recursos extraídos,
-ROMs, partidas ni binarios generados. No se encontró ningún .mod en el
-repositorio ni en la búsqueda de archivos bajo Documents/Codex.
+INSPECCIÓN
+Sin AGENTS.md aplicable. Revisados CONTRIBUTING, README, documentación 3DS,
+instalación, desarrollo, arquitectura y assets. El compositor traduce OAM/VRAM
+GBA mediante Citro2D/Citro3D; los cambios se limitan al backend 3DS.
+Mod suministrado: HD Battle Sprites 0.9.10, autores Verdep, Insensitivity.
+15 GIF de Venusaur, Charizard y Blastoise: frente/espalda, normal/shiny y las
+variantes de sexo presentes. Fuentes de 48 a 80 fotogramas; ciclos 1.44–2.43 s.
+No se publica el mod ni ningún recurso convertido en Git.
 
-ARQUITECTURA
-3ds_video.c traduce OAM, VRAM y registros de GBA al compositor Citro3D;
-DrawObjects/DrawObjectAt son puntos a evaluar para sustituir el dibujo de
-los combatientes. No basta superponer una imagen al final: hay que conservar
-prioridades, ventanas, transparencias, ocultación, transformaciones y efectos.
-voxel/voxel_battle.c gestiona escenario y sombras y ya consulta los sprites
-de combatientes. No implementa la reproducción del mod de PokeMMO.
-3ds_data.c ofrece RomFS, archivos sueltos y paquetes; no es un importador .mod.
-3ds_bottom_ui.c y 3ds_bottom_screen.c manejan la pantalla inferior.
-El heap lineal documentado es 8 MiB, compartido con atlas y buffers existentes;
-la VRAM usa arenas fijas. Es necesario medir presupuesto libre en consola.
+IMPLEMENTACIÓN
+Conversión offline con Python y Pillow:
+  python3 tools/hd_battle/convert.py '/ruta/HD Battle Sprites.mod' /ruta/hd_battle
+Copiar únicamente los .bin a SD:/3ds/emerald3ds/hd_battle/.
+Los PNG son atlas de inspección y manifest.json es el informe de conversión.
+No incorporar estos recursos al repositorio ni a un paquete público.
 
-PRUEBA PREVISTA, AÚN NO IMPLEMENTADA
-Solo Venusaur (3), Charizard (6) y Blastoise (9), frente y espalda.
-Primero inspeccionar contenido, dimensiones, duración, transparencia y variantes
-del .mod proporcionado; no se ha supuesto que su formato sea GIF.
-Convertir fuera de la consola a frames/atlas aptos para GPU con tiempos originales,
-recorte y ancla estable. Determinar resolución y tasa de frames según mediciones.
-Cargar solo combatientes activos, con límites explícitos, liberación al salir
-y retorno al sprite original ante recurso ausente o fallo de carga.
-Ejemplo de coste, no presupuesto aprobado: 16 frames de 128x128 RGBA5551
-ocupan 512 KiB sin contar padding, staging ni metadatos. Cuatro combatientes
-pueden consumir 2 MiB más staging; evitar cargar todo el catálogo.
-Mantener datos y lógica de batalla, pantalla inferior y formato de partidas.
-Comprobar combates individuales/dobles, entrada/salida, debilitamiento,
-sustituto, transformación, shiny, movimientos con efectos y cambios de escena.
-No se han adaptado assets ni modificado el renderizador antes de recibir el mod.
+Cada animación usa 16 muestras temporales, conservando la duración del ciclo
+(aproximadamente 6.6–11.1 fotogramas/s). Se recorta con la unión de todos los
+fotogramas para mantener estable el ancla. Cada imagen cabe en 124x124 dentro
+de una celda 128x128; el atlas 512x512 tiene 16 celdas. RGBA5551, alfa binaria,
+orden Morton nativo. Se pierde detalle respecto al GIF y transparencia parcial.
+Archivo: EM3DHD01 (8 bytes), 16 duraciones little-endian uint32 en ms,
+524288 bytes de textura. Tamaño exacto 524360; el lector comprueba cabecera,
+duraciones, truncamiento y bytes sobrantes antes de dibujar.
 
-VALIDACIÓN REALIZADA
-Bootstrap completado: revisión pret/pokeemerald fijada en upstream.lock,
-76463dac15cad36aca5e2b3f6366abf9e53f814f, con parches aplicados.
-Constructor: 82 pruebas ejecutadas sin fallos, 2 omitidas.
-Pruebas nativas aprobadas: entrada, vídeo, día/noche, almacenamiento del reloj,
-encuentros, campo de visión y lector de paquetes (PYTHON=python3).
-Auditoría release_audit.py --strict aprobada sobre la base sin cambios.
+Se cargan solo los combatientes presentes, una textura por combatiente: 512 KiB,
+hasta 2 MiB adicionales en dobles, más metadatos. Lectura directa a memoria GPU,
+sin staging completo ni decodificador GIF en consola. Carga síncrona al entrar o
+cambiar especie/variante: puede causar una pausa; requiere medir en hardware.
+Carga/liberación tras sincronizar el frame previo; liberación al salir/cerrar.
+Un fallo de apertura, formato o asignación deja el gráfico GBA original.
+La variante exacta de sexo precede a la genérica; no se inventan variantes.
 
-LIMITACIONES Y SIGUIENTE PASO
-Faltan devkitARM, libctru, citro2d/citro3d y 3dstools para compilar 3DS.
-El make del sistema también advierte sobre reglas agrupadas (&:); usar GNU make
-moderno en el entorno de compilación. No se ha generado un .3dsx validado.
-Sin prueba en New 3DS XL: no se afirma rendimiento, uso de memoria ni
-compatibilidad visual de las animaciones. No se ha probado una partida real.
-Adjuntar el archivo .mod exacto para iniciar la adaptación de los seis recursos.
+El dibujo sustituye al sprite en su posición dentro del compositor, conservando
+prioridad y recorte de ventanas. Solo reemplaza sprites 64x64 con matriz afín
+identidad o sin transformación. Matrices animadas, mosaico, semitransparencia,
+modificaciones de paleta, sustituto y transformación mantienen el sprite GBA.
+Esto puede producir cambios visibles entre estilos durante ataques/transiciones.
+La asociación se realiza por tile y paleta del combatiente en OAM; debe validarse
+con animaciones complejas. No se cambia lógica de combate, doble pantalla,
+formato de guardado ni datos de partidas. Su conservación real aún exige prueba.
+
+VALIDACIÓN
+Conversión real del mod: 15 recursos generados, todos 524360 bytes.
+Prueba sintética: selección de especies, duración desigual, transparencia,
+colores RGBA5551, orden Morton y no extracción de rutas del ZIP: aprobada.
+Puente de metadatos: comprobación sintáctica con Clang, cabeceras del juego y
+_FORTIFY_SOURCE=0 (adaptación solo del chequeo host): aprobada.
+Constructor: 82 pruebas sin fallos, 2 omitidas.
+Pruebas host entrada/vídeo/día-noche/reloj/encuentros/campo/paquetes: aprobadas.
+Auditoría de publicación estricta: aprobada. Bootstrap/parches: aprobado.
+Estas pruebas no compilan ni ejecutan el nuevo compositor para ARM11.
+
+COMPILACIÓN Y LÍMITES
+Intento de compilar los objetos modificados: falla por falta de
+/opt/devkitpro/devkitARM/bin/arm-none-eabi-gcc (error 127).
+Faltan devkitARM, libctru, citro2d/citro3d y herramientas 3DS. Usar el entorno
+establecido por la documentación del proyecto y GNU make moderno; el make de
+macOS advierte sobre reglas agrupadas. Pillow es necesario para generar assets.
+No se ha producido un .3dsx validado. No se afirma que esta rama compile aún.
+No se dispone de prueba en New 3DS XL: memoria libre, FPS, carga, orientación,
+alineación y compatibilidad visual están pendientes.
+
+VALIDACIÓN PENDIENTE EN CONSOLA
+Compilar con el SDK; combatir con los tres Pokémon por ambos lados y variantes;
+probar individuales/dobles, entrada/salida repetida, cambios, debilitamiento,
+substituto/transformación, ataques afines, flashes, ventanas, objetos faltantes y
+archivos corruptos. Medir heap lineal/FPS y pausas con cuatro atlas activos.
+Guardar/cargar una copia de partida y revisar la pantalla inferior. No ampliar
+el catálogo hasta superar estas comprobaciones.
