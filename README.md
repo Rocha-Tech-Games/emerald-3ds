@@ -289,3 +289,9 @@ development: [AI_DISCLOSURE.md](AI_DISCLOSURE.md).
 Emerald 3DS is an unofficial fan project, not affiliated with or endorsed by
 Nintendo, Game Freak, Creatures or The Pokémon Company. Pokémon and Pokémon
 Emerald are trademarks of their respective owners.
+
+## Experimental multiplatform foundation
+
+See [multiplatform/README.md](multiplatform/README.md) for the PC save tool and
+Switch/3DS diagnostics, and [the assessment](docs/MULTIPLATFORM.md) for scope.
+These are development scaffolding; five-region gameplay is not implemented.

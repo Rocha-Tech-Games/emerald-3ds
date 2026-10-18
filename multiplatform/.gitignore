@@ -1,0 +1,7 @@
+build/
+*.elf
+*.nro
+*.nacp
+*.3dsx
+*.smdh
+*.map
