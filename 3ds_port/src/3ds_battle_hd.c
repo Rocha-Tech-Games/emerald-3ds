@@ -7,6 +7,7 @@
 #include "pokemon.h"
 #include "sprite.h"
 #include "palette.h"
+#include "constants/species.h"
 #include "3ds_battle_hd.h"
 
 void CtrBattleHd_Read(CtrBattleHd slots[4])
@@ -27,14 +28,18 @@ void CtrBattleHd_Read(CtrBattleHd slots[4])
         if (!sprite->inUse || sprite->invisible || sprite->anims != gAnims_MonPic)
             continue;
         species = gBattleMons[b].species;
-        if (species != 3 && species != 6 && species != 9)
+        if (species != SPECIES_VENUSAUR && species != SPECIES_CHARIZARD
+            && species != SPECIES_BLASTOISE && species != SPECIES_MUDKIP
+            && species != SPECIES_POOCHYENA)
             continue;
         if (gBattleSpritesDataPtr->battlerData[b].behindSubstitute
             || gBattleSpritesDataPtr->battlerData[b].transformSpecies)
             continue;
         mon = GetBattlerSide(b) == B_SIDE_PLAYER ? &gPlayerParty[p] : &gEnemyParty[p];
         palette = sprite->oam.paletteNum;
-        slots[b].species = species;
+        /* Mod filenames use National Dex numbers; Hoenn IDs differ in Emerald. */
+        slots[b].species = species == SPECIES_MUDKIP ? 258
+            : species == SPECIES_POOCHYENA ? 261 : species;
         slots[b].tile = sprite->oam.tileNum;
         slots[b].palette = palette;
         slots[b].back = GetBattlerSide(b) == B_SIDE_PLAYER;

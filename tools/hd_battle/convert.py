@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert only the three pilot species from the user's PokeMMO mod.
+"""Convert the five pilot species from the user's PokeMMO mod.
 Requires Pillow. Assets stay outside version control; no archive extraction.
 """
 import argparse
@@ -24,7 +24,7 @@ def convert(source, output):
             base = Path(name).name
             if not name.startswith('sprites/battlesprites/') or not base.endswith('.gif'):
                 continue
-            if base.split('-')[0] not in ('3', '6', '9'):
+            if base.split('-')[0] not in ('3', '6', '9', '258', '261'):
                 continue
             with archive.open(name) as stream, Image.open(stream) as gif:
                 frames, times, bounds = [], [], None

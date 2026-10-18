@@ -69,9 +69,9 @@ GNU Make 4.4.1 instalado en el Mac; el contenedor utiliza GNU Make 4.3.
 Tras bootstrap: make -f make_tools.mk clean-tools; make -f make_tools.mk -j8;
 make generated -j8; make -C 3ds_port -j8 PYTHON=python3.
 Se reconstruyen herramientas host para Linux al cambiar desde macOS.
-Generado emerald3ds.3dsx con datos RomFS incluidos (EMBED_DATA=1), 36841564 bytes.
-SHA256: 75f9be7b8d40f1442da894486eba827d2b69e18b96f8b5c6d0d19262d5211dba
-Build ID: 26ae91f351894369. Cabecera 3DSX válida; CtrBattleHd_Read presente.
+Generado emerald3ds.3dsx con datos RomFS incluidos (EMBED_DATA=1), 36841632 bytes.
+SHA256: 5d0523c7345c2737e1f5e7073affee8c72dc9f3ba6efdec3e4cefdcf92bad3ad
+Build ID: 0807000f4b028a9e. Cabecera 3DSX válida; CtrBattleHd_Read presente.
 La prueba host voxel_world_hash_test requería el stub GetMapClosedEdges;
 se añade solo a sus fixtures, sin cambios al ejecutable del juego.
 No se dispone de prueba en New 3DS XL: memoria libre, FPS, carga, orientación,
@@ -84,3 +84,10 @@ substituto/transformación, ataques afines, flashes, ventanas, objetos faltantes
 archivos corruptos. Medir heap lineal/FPS y pausas con cuatro atlas activos.
 Guardar/cargar una copia de partida y revisar la pantalla inferior. No ampliar
 el catálogo hasta superar estas comprobaciones.
+
+AMPLIACIÓN PARA LA PARTIDA INICIAL
+Añadidos Mudkip y Poochyena: frontal/trasero y normal/shiny (8 atlas nuevos).
+Se conservan los tres Pokémon de la prueba original: 23 atlas en total.
+Los IDs internos de Esmeralda 283/286 se convierten a números nacionales
+258/261 antes de buscar los archivos del mod. La partida no se modifica.
+Los límites de 16 fotogramas por atlas y cuatro texturas simultáneas se conservan.
