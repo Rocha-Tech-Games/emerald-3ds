@@ -25,12 +25,14 @@ void CtrBattleHd_Read(CtrBattleHd slots[4])
         if ((gAbsentBattlerFlags & (1u << b)) || id >= MAX_SPRITES || p >= PARTY_SIZE)
             continue;
         sprite = &gSprites[id];
-        if (!sprite->inUse || sprite->invisible || sprite->anims != gAnims_MonPic)
+        if (!sprite->inUse || sprite->invisible)
             continue;
         species = gBattleMons[b].species;
-        if (species != SPECIES_VENUSAUR && species != SPECIES_CHARIZARD
-            && species != SPECIES_BLASTOISE && species != SPECIES_MUDKIP
-            && species != SPECIES_POOCHYENA)
+        if (species == SPECIES_NONE || species >= NUM_SPECIES)
+            continue;
+        /* Opponents use species-specific front animations, players use backs. */
+        if (sprite->anims != gAnims_MonPic
+            && sprite->anims != gMonFrontAnimsPtrTable[species])
             continue;
         if (gBattleSpritesDataPtr->battlerData[b].behindSubstitute
             || gBattleSpritesDataPtr->battlerData[b].transformSpecies)
@@ -38,8 +40,9 @@ void CtrBattleHd_Read(CtrBattleHd slots[4])
         mon = GetBattlerSide(b) == B_SIDE_PLAYER ? &gPlayerParty[p] : &gEnemyParty[p];
         palette = sprite->oam.paletteNum;
         /* Mod filenames use National Dex numbers; Hoenn IDs differ in Emerald. */
-        slots[b].species = species == SPECIES_MUDKIP ? 258
-            : species == SPECIES_POOCHYENA ? 261 : species;
+        slots[b].species = SpeciesToNationalPokedexNum(species);
+        if (!slots[b].species || slots[b].species > 386)
+            continue;
         slots[b].tile = sprite->oam.tileNum;
         slots[b].palette = palette;
         slots[b].back = GetBattlerSide(b) == B_SIDE_PLAYER;

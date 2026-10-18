@@ -1,93 +1,65 @@
-PRUEBA EXPERIMENTAL: HD BATTLE SPRITES
+EMERALD 3DS: HD BATTLE SPRITES, CATÁLOGO DE ESMERALDA
 
 Fork: https://github.com/Rocha-Tech-Games/emerald-3ds
-Rama: feature/hd-battle-sprites; base upstream/integration 7b3a16bb.
-No se modifica el repositorio original.
+Rama: feature/hd-battle-sprites; base original 7b3a16bb.
+No se modifica el repositorio original. Recursos del mod solo para la prueba local;
+no se incluyen en Git. No se modifican datos ni formato de partidas.
 
-INSPECCIÓN
-Sin AGENTS.md aplicable. Revisados CONTRIBUTING, README, documentación 3DS,
+INSPECCIÓN Y CAMBIOS
+Sin AGENTS.md aplicable. Revisados README, CONTRIBUTING, documentación de
 instalación, desarrollo, arquitectura y assets. El compositor traduce OAM/VRAM
 GBA mediante Citro2D/Citro3D; los cambios se limitan al backend 3DS.
+El puente reconoce las animaciones frontales específicas de cada especie,
+además de las traseras compartidas. El filtro anterior descartaba los rivales,
+lo que explica el Poochyena original comunicado por el usuario.
+Se usa SpeciesToNationalPokedexNum para los números 1–386; los identificadores
+internos de Hoenn difieren de los números del mod.
+
+COBERTURA REAL
 Mod suministrado: HD Battle Sprites 0.9.10, autores Verdep, Insensitivity.
-15 GIF de Venusaur, Charizard y Blastoise: frente/espalda, normal/shiny y las
-variantes de sexo presentes. Fuentes de 48 a 80 fotogramas; ciclos 1.44–2.43 s.
-No se publica el mod ni ningún recurso convertido en Git.
+1676 GIF convertidos; 381 especies con alguna vista disponible.
+Faltan totalmente Celebi, Kyogre, Groudon, Jirachi y Deoxys.
+Mew, Ho-Oh, Regirock, Regice, Registeel, Latias y Latios carecen de espalda normal.
+Algunas variantes shiny también faltan. Se conserva el gráfico original donde
+no existe recurso, sin sustituirlo por una vista incorrecta.
+La prueba anterior con Mudkip se veía bien según el usuario; esta ampliación
+requiere otra prueba en la consola.
 
-IMPLEMENTACIÓN
-Conversión offline con Python y Pillow:
-  python3 tools/hd_battle/convert.py '/ruta/HD Battle Sprites.mod' /ruta/hd_battle
-Copiar únicamente los .bin a SD:/3ds/emerald3ds/hd_battle/.
-Los PNG son atlas de inspección y manifest.json es el informe de conversión.
-No incorporar estos recursos al repositorio ni a un paquete público.
+CONVERSIÓN Y MEMORIA
+Python y Pillow: tools/hd_battle/convert.py MOD CARPETA_SALIDA.
+16 muestras temporales por animación; duración del ciclo conservada.
+Recorte común a todos los fotogramas y ajuste a 124x124 en celdas de 128x128.
+Atlas 512x512, RGBA5551, alfa binaria y orden Morton nativo.
+Cada .bin: EM3DHD01, 16 duraciones uint32 little-endian y 524288 bytes de textura;
+524360 bytes en total. Se comprueba formato, duración y longitud al cargar.
+Las texturas se cargan por combatiente: hasta cuatro atlas, 2 MiB de texturas,
+más metadatos. El catálogo completo requiere unos 839 MiB en SD, más ejecutable.
+Carga síncrona al entrar/cambiar variante: pausas y FPS pendientes de medición.
+No se decodifican GIF en consola. Se pierde detalle y transparencia parcial.
 
-Cada animación usa 16 muestras temporales, conservando la duración del ciclo
-(aproximadamente 6.6–11.1 fotogramas/s). Se recorta con la unión de todos los
-fotogramas para mantener estable el ancla. Cada imagen cabe en 124x124 dentro
-de una celda 128x128; el atlas 512x512 tiene 16 celdas. RGBA5551, alfa binaria,
-orden Morton nativo. Se pierde detalle respecto al GIF y transparencia parcial.
-Archivo: EM3DHD01 (8 bytes), 16 duraciones little-endian uint32 en ms,
-524288 bytes de textura. Tamaño exacto 524360; el lector comprueba cabecera,
-duraciones, truncamiento y bytes sobrantes antes de dibujar.
+COMPATIBILIDAD
+Se conservan posición, prioridad, recorte y doble pantalla. Se omiten sprites
+invisibles, sustituto y transformación. Los efectos afines, mosaico, cambios de
+paleta y otros efectos no compatibles pueden mostrar temporalmente el sprite GBA.
+Variantes por sexo: exacta primero, después genérica. Fallos de archivo o memoria
+mantienen el sprite original. Formas especiales requieren validación adicional.
 
-Se cargan solo los combatientes presentes, una textura por combatiente: 512 KiB,
-hasta 2 MiB adicionales en dobles, más metadatos. Lectura directa a memoria GPU,
-sin staging completo ni decodificador GIF en consola. Carga síncrona al entrar o
-cambiar especie/variante: puede causar una pausa; requiere medir en hardware.
-Carga/liberación tras sincronizar el frame previo; liberación al salir/cerrar.
-Un fallo de apertura, formato o asignación deja el gráfico GBA original.
-La variante exacta de sexo precede a la genérica; no se inventan variantes.
-
-El dibujo sustituye al sprite en su posición dentro del compositor, conservando
-prioridad y recorte de ventanas. Solo reemplaza sprites 64x64 con matriz afín
-identidad o sin transformación. Matrices animadas, mosaico, semitransparencia,
-modificaciones de paleta, sustituto y transformación mantienen el sprite GBA.
-Esto puede producir cambios visibles entre estilos durante ataques/transiciones.
-La asociación se realiza por tile y paleta del combatiente en OAM; debe validarse
-con animaciones complejas. No se cambia lógica de combate, doble pantalla,
-formato de guardado ni datos de partidas. Su conservación real aún exige prueba.
-
-VALIDACIÓN
-Conversión real del mod: 15 recursos generados, todos 524360 bytes.
-Prueba sintética: selección de especies, duración desigual, transparencia,
-colores RGBA5551, orden Morton y no extracción de rutas del ZIP: aprobada.
-Puente de metadatos: comprobación sintáctica con Clang, cabeceras del juego y
-_FORTIFY_SOURCE=0 (adaptación solo del chequeo host): aprobada.
-Constructor: 82 pruebas sin fallos, 2 omitidas.
-Pruebas host entrada/vídeo/día-noche/reloj/encuentros/campo/paquetes: aprobadas.
-Auditoría de publicación estricta: aprobada. Bootstrap/parches: aprobado.
-El compositor y el puente HD también se han compilado y enlazado para ARM11.
-Verificación completa make -C 3ds_port -j8 verify PYTHON=python3: aprobada.
-Auditoría final: ARM11 hard-float, 34 símbolos del juego requeridos, sin símbolos
-fuertes sin resolver y 6424/6424 assets RomFS verificados.
-
-COMPILACIÓN Y LÍMITES
-Compilación completa aprobada con la imagen oficial devkitpro/devkitarm:
+COMPILACIÓN Y VERIFICACIÓN
+Imagen oficial devkitpro/devkitarm aarch64:
 sha256:116afba8df8453961de2936ffab20dd441edf4d682856c1ec8b0e53d7ed0bbf5
-SDK instalado en Docker (aarch64): devkitARM GCC 16.1.0, libctru, Citro2D,
-Citro3D y herramientas 3DS; añadidos python3-pil y libpng-dev.
-GNU Make 4.4.1 instalado en el Mac; el contenedor utiliza GNU Make 4.3.
-Tras bootstrap: make -f make_tools.mk clean-tools; make -f make_tools.mk -j8;
-make generated -j8; make -C 3ds_port -j8 PYTHON=python3.
-Se reconstruyen herramientas host para Linux al cambiar desde macOS.
-Generado emerald3ds.3dsx con datos RomFS incluidos (EMBED_DATA=1), 36841632 bytes.
-SHA256: 5d0523c7345c2737e1f5e7073affee8c72dc9f3ba6efdec3e4cefdcf92bad3ad
-Build ID: 0807000f4b028a9e. Cabecera 3DSX válida; CtrBattleHd_Read presente.
-La prueba host voxel_world_hash_test requería el stub GetMapClosedEdges;
-se añade solo a sus fixtures, sin cambios al ejecutable del juego.
-No se dispone de prueba en New 3DS XL: memoria libre, FPS, carga, orientación,
-alineación y compatibilidad visual están pendientes.
+GCC 16.1.0, libctru, Citro2D, Citro3D, 3dstools; python3-pil y libpng-dev.
+SDK instalado en Docker; GNU Make 4.4.1 instalado en Mac.
+Bootstrap, herramientas host Linux, make generated y compilación 3ds_port.
+Verificación completa de la base anterior aprobada; después de ampliar el puente:
+recompilación ARM11 y auditoría stage 9 aprobadas, 34 símbolos requeridos,
+sin símbolos fuertes sin resolver; 6424 assets y 1339 filas de punteros verificados.
+Prueba del conversor aprobada: límites 1/386, exclusión 0/387, duración desigual,
+transparencia, colores, orden Morton y rutas ZIP no extraídas.
+Nuevo .3dsx: 36841568 bytes; Build ID 2ec4858926e92f82; datos RomFS incluidos.
+SHA256: f57477e8554bcd07f5ba19985fcf86d6e9fa9d107322f39addd8557885b00de1
 
-VALIDACIÓN PENDIENTE EN CONSOLA
-Combatir con los tres Pokémon por ambos lados y variantes;
-probar individuales/dobles, entrada/salida repetida, cambios, debilitamiento,
-substituto/transformación, ataques afines, flashes, ventanas, objetos faltantes y
-archivos corruptos. Medir heap lineal/FPS y pausas con cuatro atlas activos.
-Guardar/cargar una copia de partida y revisar la pantalla inferior. No ampliar
-el catálogo hasta superar estas comprobaciones.
-
-AMPLIACIÓN PARA LA PARTIDA INICIAL
-Añadidos Mudkip y Poochyena: frontal/trasero y normal/shiny (8 atlas nuevos).
-Se conservan los tres Pokémon de la prueba original: 23 atlas en total.
-Los IDs internos de Esmeralda 283/286 se convierten a números nacionales
-258/261 antes de buscar los archivos del mod. La partida no se modifica.
-Los límites de 16 fotogramas por atlas y cuatro texturas simultáneas se conservan.
+PRUEBAS PENDIENTES EN NEW 3DS XL
+Confirmar Poochyena rival frontal y Mudkip trasero, individuales/dobles, cambios,
+debilitamientos, ataques y transiciones. Medir FPS, memoria libre y pausas.
+Verificar ambas pantallas y guardar/cargar una copia de la partida.
+No se ha comprobado visualmente cada especie ni variante en hardware.

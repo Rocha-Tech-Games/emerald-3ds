@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert the five pilot species from the user's PokeMMO mod.
+"""Convert the Emerald National Dex (1–386) from the user's PokeMMO mod.
 Requires Pillow. Assets stay outside version control; no archive extraction.
 """
 import argparse
@@ -16,6 +16,9 @@ ATLAS = 512
 def morton(x, y):
     return sum(((x >> i) & 1) << (2*i) | ((y >> i) & 1) << (2*i+1) for i in range(3))
 
+TILE_PIXELS = sorted(((x, y) for y in range(8) for x in range(8)),
+                     key=lambda p: morton(*p))
+
 def convert(source, output):
     output.mkdir(parents=True, exist_ok=True)
     report = []
@@ -24,7 +27,7 @@ def convert(source, output):
             base = Path(name).name
             if not name.startswith('sprites/battlesprites/') or not base.endswith('.gif'):
                 continue
-            if base.split('-')[0] not in ('3', '6', '9', '258', '261'):
+            if not base.split('-')[0].isdigit() or not 1 <= int(base.split('-')[0]) <= 386:
                 continue
             with archive.open(name) as stream, Image.open(stream) as gif:
                 frames, times, bounds = [], [], None
@@ -51,12 +54,14 @@ def convert(source, output):
                 atlas.paste(frame, ((i%4)*SIZE+(SIZE-frame.width)//2, (i//4)*SIZE+SIZE-2-frame.height))
             pixels = atlas.load()
             data = bytearray(ATLAS*ATLAS*2)
-            for y in range(ATLAS):
-                for x in range(ATLAS):
-                    r,g,b,a = pixels[x,y]
-                    value = ((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|(a>=128)
-                    offset = (((y//8)*(ATLAS//8)+x//8)*64+morton(x,y))*2
-                    struct.pack_into('<H', data, offset, value)
+            offset = 0
+            for ty in range(0, ATLAS, 8):
+                for tx in range(0, ATLAS, 8):
+                    for x, y in TILE_PIXELS:
+                        r,g,b,a = pixels[tx+x,ty+y]
+                        value = ((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|(a>=128)
+                        struct.pack_into('<H', data, offset, value)
+                        offset += 2
             header = b'EM3DHD01'+struct.pack('<16I', *(edges[i+1]-edges[i] for i in range(FRAMES)))
             (output/(base[:-4]+'.bin')).write_bytes(header+data)
             atlas.save(output/(base[:-4]+'.png'))
